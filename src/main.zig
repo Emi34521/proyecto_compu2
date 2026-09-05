@@ -122,7 +122,7 @@ pub fn main() !void {
         } },
         .{ .Sphere = .{
             .center = .{ .x = 22, .y = 0, .z = -45 },
-            .radius = 5,
+            .radius = 50,
             .material = espejo,
         } },
         .{ .Sphere = .{
@@ -150,7 +150,7 @@ pub fn main() !void {
         },
     };
 
-    const cameraDistance = 100;
+    var cameraDistance: f32 = 100;
     var camera: Camera = .init(.{
         .x = 0,
         .y = 0,
@@ -192,6 +192,15 @@ pub fn main() !void {
         camera.Postition.x = @cos(camera_x_angle) * cameraDistance;
         camera.Postition.y = @sin(camera_y_angle) * cameraDistance;
         camera.Postition.z = @sin(camera_x_angle) * cameraDistance;
+
+        //Para hacer un zoom en la cámara con la rueda del mouse.
+        //tiene un límite porque, de pasarse
+        if (rl.getMouseWheelMove() > 0 and cameraDistance > 10) {
+            cameraDistance -= 10;
+        }
+        if (rl.getMouseWheelMove() < 0 and cameraDistance < 250) {
+            cameraDistance += 10;
+        }
 
         camera.lookAt(.zero());
 
@@ -290,7 +299,7 @@ fn cast_ray(origin: rl.Vector3, direction: rl.Vector3, objects: []const Forma, l
         if (mat.Propiedades.Reflectividad > 0) {
             if (max_recursion > 0) {
                 const reflect_direction = rl.Vector3.reflect(direction, hit.Normal);
-                const new_og = hit.Punto; // Esto puede hacer que topemos con la misma figura
+                const new_og = hit.Punto.add(reflect_direction.scale(0.001)); // Esto puede hacer que topemos con la misma figura
                 // Eso es malo
                 const reflect_color = cast_ray(new_og, reflect_direction, objects, lights, max_recursion - 1);
                 color = color.add(reflect_color.scale(mat.Propiedades.Reflectividad));
@@ -303,7 +312,7 @@ fn cast_ray(origin: rl.Vector3, direction: rl.Vector3, objects: []const Forma, l
         if (mat.Propiedades.Transparencia > 0) {
             if (max_recursion > 0) {
                 if (refract(direction, hit.Normal, mat.Refractive_index)) |refract_direction| {
-                    const new_og = hit.Punto; // Esto puede hacer que topemos con la misma figura
+                    const new_og = hit.Punto.add(refract_direction.scale(0.001)); // Esto puede hacer que topemos con la misma figura
                     // Eso es malo
                     const refract_color = cast_ray(new_og, refract_direction, objects, lights, max_recursion - 1);
                     color = color.add(refract_color.scale(mat.Propiedades.Transparencia));
