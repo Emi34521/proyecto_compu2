@@ -41,7 +41,7 @@ pub fn main() !void {
     rl.initWindow(width, height, "Raytracer!!!");
     rl.setTraceLogLevel(.warning);
     defer rl.closeWindow();
-    rl.setTargetFPS(60);
+    rl.setTargetFPS(30);
 
     var last_frame_time = Clock.now(io);
     var delta: i64 = 1;
@@ -317,7 +317,7 @@ fn cast_ray(origin: rl.Vector3, direction: rl.Vector3, objects: []const Forma, l
                     color = color.add(refract_color.scale(mat.Propiedades.Transparencia));
                 } else {
                     const reflect_direction = rl.Vector3{ .x = 0, .y = 1, .z = 0 };
-                    const new_og = hit.Punto; // Esto puede hacer que topemos con la misma figura
+                    const new_og = hit.Punto.add(reflect_direction.scale(0.001)); // Esto puede hacer que topemos con la misma figura
                     // Eso es malo
                     const reflect_color = cast_ray(new_og, reflect_direction, objects, lights, max_recursion - 1);
                     color = color.add(reflect_color.scale(mat.Propiedades.Reflectividad));
@@ -329,8 +329,9 @@ fn cast_ray(origin: rl.Vector3, direction: rl.Vector3, objects: []const Forma, l
         }
         //por cada una de las luces, como les pega.
         for (lights) |light| {
-            if (obscured(hit.Punto, light, objects))
+            if (obscured(hit.Punto, light, objects)) {
                 continue;
+            }
 
             // La dirección del punto a la luz
             const light_dir = (light.Position.subtract(hit.Punto)).normalize();
@@ -359,9 +360,17 @@ fn cast_ray(origin: rl.Vector3, direction: rl.Vector3, objects: []const Forma, l
 }
 
 fn obscured(origin: rl.Vector3, light: Light, objects: []const Forma) bool {
-    _ = origin;
-    _ = light;
-    _ = objects;
+    const light_dir = light.Position.subtract(origin);
+    const luz_dirN = light_dir.normalize();
+    const distancia_a_luz = light_dir.length();
+
+    for (objects) |object| {
+        const hit = object.intersect(origin, luz_dirN) orelse continue;
+
+        if (hit.Distancia > 0.001 and hit.Distancia < distancia_a_luz) {
+            return true;
+        }
+    }
 
     return false;
 }

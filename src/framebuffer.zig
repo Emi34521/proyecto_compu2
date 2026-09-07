@@ -65,7 +65,7 @@ pub const Framebuffer = struct {
 
         //¡Pero como nosotros insistimos en usar el CPU para dibujar los frames, no podemos hacer eso!
         //Siempre tendremos que guardar la textura para luego poder borrarla en clean. Si no, nos quedamos sin memoria en la GPU.
-
+        rl.drawFPS(10, 10); //dibujar fps
         self.texture = texture;
     }
 };
