@@ -22,7 +22,10 @@ pub const Light = struct {
 
 pub const Material = struct {
     //xyz como rgb, pero reducimos conversiones primero haciendo mate en f32 y luego convertimos de regreso a u8
-    Color: rl.Vector3, //tiene un color el material
+    Color: union(col_or_tex) {
+        Color: rl.Vector3,
+        Textura: *Textura,
+    }, //tiene un color el material
     Especular: f32,
     Refractive_index: f32,
     Propiedades: struct {
@@ -32,6 +35,7 @@ pub const Material = struct {
         Reflectividad: f32,
         Transparencia: f32,
     },
+    Norm_map: ?*Textura = null, //mapa de normales, si es null no hay mapa de normales
 };
 
 pub const Intersect = struct {
