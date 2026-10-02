@@ -47,7 +47,7 @@ pub fn main() !void {
     var delta: i64 = 1;
 
     const espejo = Material{
-        .Color = V3FromColor(htmlColor("#fff")),
+        .Color = .{ .Color = V3FromColor(htmlColor("#fff")) },
         .Propiedades = .{
             .Albedo = 0,
             .Especular = 1,
@@ -59,7 +59,7 @@ pub fn main() !void {
     };
 
     const vidrio = Material{
-        .Color = V3FromColor(htmlColor("#aaa")),
+        .Color = .{ .Color = V3FromColor(htmlColor("#aaa")) },
         .Propiedades = .{
             .Albedo = 0,
             .Especular = 0.5,
@@ -71,7 +71,7 @@ pub fn main() !void {
     };
 
     const diamante = Material{
-        .Color = V3FromColor(htmlColor("#aaa")),
+        .Color = .{ .Color = V3FromColor(htmlColor("#aaa")) },
         .Propiedades = .{
             .Albedo = 0,
             .Especular = 0.5,
@@ -83,7 +83,7 @@ pub fn main() !void {
     };
 
     const marmol = Material{
-        .Color = V3FromColor(htmlColor("#66664c")),
+        .Color = .{ .Color = V3FromColor(htmlColor("#66664c")) },
         .Propiedades = .{
             .Albedo = 0.4,
             .Especular = 0.3,
@@ -100,21 +100,23 @@ pub fn main() !void {
             .radius = 5,
             .material = espejo,
         } },
-        .{ .Sphere = .{
-            .center = .{ .x = 12.5, .y = 0, .z = -60 },
-            .radius = 5,
-            .material = .{
-                .Color = V3FromColor(htmlColor("#4c1919")),
-                .Propiedades = .{
-                    .Albedo = 0.9,
-                    .Especular = 0.1,
-                    .Reflectividad = 0,
-                    .Transparencia = 0,
+        .{
+            .Sphere = .{
+                .center = .{ .x = 12.5, .y = 0, .z = -60 },
+                .radius = 5,
+                .material = .{
+                    .Color = .{ .Color = V3FromColor(htmlColor("#4c1919")) },
+                    .Propiedades = .{
+                        .Albedo = 0.9,
+                        .Especular = 0.1,
+                        .Reflectividad = 0,
+                        .Transparencia = 0,
+                    },
+                    .Especular = 10,
+                    .Refractive_index = 0,
                 },
-                .Especular = 10,
-                .Refractive_index = 0,
             },
-        } },
+        },
         .{ .Sphere = .{
             .center = .{ .x = 0, .y = 0, .z = 0 },
             .radius = 5,

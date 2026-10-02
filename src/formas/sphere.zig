@@ -1,6 +1,6 @@
 const rl = @import("raylib");
-const Intersect = @import("raytracer.zig").Intersect;
-const Material = @import("raytracer.zig").Material;
+const Intersect = @import("../raytracer.zig").Intersect;
+const Material = @import("../raytracer.zig").Material;
 
 pub const Sphere = struct {
     center: rl.Vector3,

@@ -1,5 +1,9 @@
 const rl = @import("raylib");
-
+const textura = @import("textura.zig").Textura;
+const col_or_tex = enum {
+    Color,
+    Textura,
+};
 pub fn V3FromColor(src: rl.Color) rl.Vector3 {
     const x: f32 = @floatFromInt(src.r);
     const y: f32 = @floatFromInt(src.g);
@@ -24,7 +28,7 @@ pub const Material = struct {
     //xyz como rgb, pero reducimos conversiones primero haciendo mate en f32 y luego convertimos de regreso a u8
     Color: union(col_or_tex) {
         Color: rl.Vector3,
-        Textura: *Textura,
+        Textura: *textura,
     }, //tiene un color el material
     Especular: f32,
     Refractive_index: f32,
@@ -35,7 +39,7 @@ pub const Material = struct {
         Reflectividad: f32,
         Transparencia: f32,
     },
-    Norm_map: ?*Textura = null, //mapa de normales, si es null no hay mapa de normales
+    Norm_map: ?*textura = null, //mapa de normales, si es null no hay mapa de normales
 };
 
 pub const Intersect = struct {

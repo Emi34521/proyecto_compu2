@@ -1,7 +1,7 @@
 const rl = @import("raylib");
 const std = @import("std");
-const Intersect = @import("raytracer").Intersect;
-const Material = @import("raytracer").Material;
+const Intersect = @import("../raytracer.zig").Intersect;
+const Material = @import("../raytracer.zig").Material;
 
 const barycentric_color = true;
 
@@ -14,15 +14,15 @@ pub const Triangle = struct {
     Material: Material,
 
     pub fn intersect(self: Triangle, origin: rl.Vector3, direction: rl.Vector3) ?Intersect {
-        const AB = self.puntos.B.substract(self.puntos.A);
-        const AC = self.puntos.C.substract(self.puntos.A);
+        const AB = self.puntos.B.subtract(self.puntos.A);
+        const AC = self.puntos.C.subtract(self.puntos.A);
         const plane_normal: rl.Vector3 = rl.Vector3.crossProduct(AB, AC);
 
         const denom = plane_normal.dotProduct(direction);
         const epsilon = std.math.floatEps(f32);
 
         if (denom > epsilon) {
-            const numerador: f32 = plane_normal.dotProduct(self.puntos.A.substract(origin));
+            const numerador: f32 = plane_normal.dotProduct(self.puntos.A.subtract(origin));
             const solucion = numerador / denom;
 
             if (solucion >= 0) {
@@ -30,16 +30,16 @@ pub const Triangle = struct {
                 const area = plane_normal.length() / 2;
 
                 const u: f32 = blk: {
-                    const BP = punto.substract(self.puntos.B);
-                    const BC = self.puntos.C.substract(self.puntos.B);
+                    const BP = punto.subtract(self.puntos.B);
+                    const BC = self.puntos.C.subtract(self.puntos.B);
                     const cross = rl.Vector3.crossProduct(BC, BP);
 
                     break :blk (cross.length()) / area;
                 };
 
                 const v: f32 = blk: {
-                    const CP = punto.substract(self.puntos.C);
-                    const CA = self.puntos.A.substract(self.puntos.C);
+                    const CP = punto.subtract(self.puntos.C);
+                    const CA = self.puntos.A.subtract(self.puntos.C);
                     const cross = rl.Vector3.crossProduct(CA, CP);
 
                     break :blk (cross.length()) / area;
