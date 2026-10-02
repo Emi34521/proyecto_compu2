@@ -340,8 +340,12 @@ fn cast_ray(origin: rl.Vector3, direction: rl.Vector3, objects: []const Forma, l
 
             // ¿Cómo sabemos qué tan "bien" nos pega la luz?
             const diffuse_intensity = light_dir.dotProduct(hit.Normal) * light.Intensity;
-
-            const diffuse = mat.Color.scale(diffuse_intensity);
+            const color_base: rl.Vector3 = switch (mat.Color) {
+                .Color => |c| c,
+                .Textura => |tex| tex.sampleTexture(.{ .x = 0, .y = 0 }), // temporal
+            };
+            const diffuse = color_base.scale(diffuse_intensity);
+            //const diffuse = mat.Color.scale(diffuse_intensity);
 
             // Dirección a la que reflejamos la luz
             const reflection_dir = rl.Vector3.reflect(light_dir.scale(-1), hit.Normal).normalize();

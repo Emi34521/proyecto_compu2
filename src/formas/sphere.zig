@@ -37,6 +37,7 @@ pub const Sphere = struct {
                     .Distancia = solucion,
                     .Normal = norm,
                     .Punto = point,
+                    .uv = null,
                 };
             }
         }

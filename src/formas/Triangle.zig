@@ -58,8 +58,12 @@ pub const Triangle = struct {
                     new_mat.Color = .{
                         .Color = red.add(green).add(blue),
                     };
+                    return null;
                 }
+                return null;
             }
+            return null;
         }
+        return null;
     }
 };

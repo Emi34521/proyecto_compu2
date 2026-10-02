@@ -47,4 +47,5 @@ pub const Intersect = struct {
     Distancia: f32,
     Normal: rl.Vector3,
     Punto: rl.Vector3,
+    uv: ?rl.Vector2,
 };
