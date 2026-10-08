@@ -20,7 +20,7 @@ pub const Textura = struct {
         datos_tex.ptr = @ptrCast(raw_tex.data);
         datos_tex.len = width * height;
 
-        var datos = gpa.alloc(rl.Vector3, width * height);
+        var datos = try gpa.alloc(rl.Vector3, width * height);
         for (datos_tex, 0..) |dato, i| {
             datos[i] = V3FromColor(dato);
         }

@@ -94,7 +94,7 @@ pub fn main() !void {
         .Refractive_index = 0,
     };
 
-    const spheres = [_]Forma{
+    const objetos = [_]Forma{
         .{ .Sphere = .{
             .center = .{ .x = 10, .y = 0, .z = -40 },
             .radius = 5,
@@ -136,6 +136,15 @@ pub fn main() !void {
             .center = .{ .x = -37, .y = 0, .z = -40 },
             .radius = 5,
             .material = diamante,
+        } },
+        //triángulo de prueba.
+        .{ .Triangle = .{
+            .puntos = .{
+                .A = .{ .x = -15, .y = -12, .z = 20 },
+                .B = .{ .x = 15, .y = -12, .z = 20 },
+                .C = .{ .x = 0, .y = 14, .z = 20 },
+            },
+            .Material = marmol,
         } },
     };
 
@@ -206,7 +215,7 @@ pub fn main() !void {
 
         camera.lookAt(.zero());
 
-        try render(&framebuffer, &spheres, &lights, camera);
+        try render(&framebuffer, &objetos, &lights, camera);
 
         try framebuffer.swap_buffers();
     }
@@ -362,7 +371,7 @@ fn cast_ray(origin: rl.Vector3, direction: rl.Vector3, objects: []const Forma, l
         }
 
         return color;
-    } else return .zero();
+    } else return (.zero());
 }
 
 fn obscured(origin: rl.Vector3, light: Light, objects: []const Forma) bool {
