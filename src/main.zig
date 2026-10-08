@@ -8,6 +8,7 @@ const Camera = @import("camera.zig").Camera;
 const Light = @import("raytracer.zig").Light;
 const Intersect = @import("raytracer.zig").Intersect;
 const Material = @import("raytracer.zig").Material;
+const Textura = @import("textura.zig").Textura;
 
 const htmlColor = @import("cute_colors.zig").htmlColor;
 const V3FromColor = @import("raytracer.zig").V3FromColor;
@@ -45,6 +46,8 @@ pub fn main() !void {
 
     var last_frame_time = Clock.now(io);
     var delta: i64 = 1;
+    var tex_prueba = try Textura.init(gpa, "src/Texturas/tablero.png");
+    defer tex_prueba.deinit(gpa);
 
     const espejo = Material{
         .Color = .{ .Color = V3FromColor(htmlColor("#fff")) },
@@ -93,6 +96,9 @@ pub fn main() !void {
         .Especular = 10,
         .Refractive_index = 0,
     };
+    var mat_textura = marmol;
+    mat_textura.Color = .{ .Textura = &tex_prueba };
+    mat_textura.Propiedades.Albedo = 0.9; // para que se vea la textura y no el color base.
 
     const objetos = [_]Forma{
         .{ .Sphere = .{
@@ -144,7 +150,7 @@ pub fn main() !void {
                 .B = .{ .x = 15, .y = -12, .z = 20 },
                 .C = .{ .x = 0, .y = 14, .z = 20 },
             },
-            .Material = marmol,
+            .Material = mat_textura,
         } },
     };
 
@@ -351,7 +357,10 @@ fn cast_ray(origin: rl.Vector3, direction: rl.Vector3, objects: []const Forma, l
             const diffuse_intensity = light_dir.dotProduct(hit.Normal) * light.Intensity;
             const color_base: rl.Vector3 = switch (mat.Color) {
                 .Color => |c| c,
-                .Textura => |tex| tex.sampleTexture(.{ .x = 0, .y = 0 }), // temporal
+                .Textura => |tex| if (hit.uv) |uv|
+                    tex.sampleTexture(uv)
+                else
+                    rl.Vector3{ .x = 1, .y = 0, .z = 1 }, // magenta: este objeto aún no tiene UV en lugar de crashear
             };
             const diffuse = color_base.scale(diffuse_intensity);
             //const diffuse = mat.Color.scale(diffuse_intensity);

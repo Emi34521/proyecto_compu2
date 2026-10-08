@@ -94,8 +94,9 @@ pub const Triangle = struct {
             .y = b0 * self.uvs.A.y + b1 * self.uvs.B.y + b2 * self.uvs.C.y,
         };
 
-        // se devuelve la interseeción con el material o las baricentricas.
+        // se devuelve la interseeción con el material
         var material = self.Material;
+        // si barycentric_color es true, se colorea el triángulo con colores RGB según las coordenadas baricéntricas
         if (barycentric_color) {
             const rojo = (rl.Vector3{ .x = 1, .y = 0, .z = 0 }).scale(b0);
             const verde = (rl.Vector3{ .x = 0, .y = 1, .z = 0 }).scale(b1);
@@ -112,4 +113,5 @@ pub const Triangle = struct {
         };
     }
 };
-// explicación del método de Möller-Trumbore
+// información adicional algoritmo Möller–Trumbore: https://en.wikipedia.org/wiki/Möller%E2%80%93Trumbore_intersection_algorithm
+// https://trslater.ca/blog-base-two/2023/08/15/mollertrumbore-photorealistic-lighting-starts-with-a-ray-and-a-triangle/
