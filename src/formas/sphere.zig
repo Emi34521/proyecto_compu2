@@ -1,7 +1,9 @@
 const rl = @import("raylib");
 const Intersect = @import("../raytracer.zig").Intersect;
 const Material = @import("../raytracer.zig").Material;
+const std = @import("std");
 
+const scale: f32 = 50.0;
 pub const Sphere = struct {
     center: rl.Vector3,
     radius: f32,
@@ -32,12 +34,26 @@ pub const Sphere = struct {
                 // asumiendo que la esfera es perfectamente esferica,
                 // normal es la direccion desde el centro de la esfera al punto que calculamos
                 const norm = point.subtract(self.center).normalize();
+
+                //calcular las uv para las texturas de las esferas.
+                const u: f32 = 0.5 + (std.math.atan2(norm.z, norm.x) / (2 * std.math.pi));
+                const v: f32 = 0.5 - (std.math.asin(norm.y) / std.math.pi);
+
+                // normalizar u y v para que estén entre 0 y 1
+                const u_normal: f32 = @mod(u, 1.0);
+                const v_normal: f32 = @mod(v, 1.0);
+
+                const uv: rl.Vector2 = .{
+                    .x = u_normal,
+                    .y = v_normal,
+                };
+
                 return .{
                     .Material = self.material,
                     .Distancia = solucion,
                     .Normal = norm,
                     .Punto = point,
-                    .uv = null,
+                    .uv = uv,
                 };
             }
         }

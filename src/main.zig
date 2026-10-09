@@ -46,8 +46,10 @@ pub fn main() !void {
 
     var last_frame_time = Clock.now(io);
     var delta: i64 = 1;
-    var tex_prueba = try Textura.init(gpa, "src/Texturas/tablero.png");
-    defer tex_prueba.deinit(gpa);
+    var tex_marte = try Textura.init(gpa, "src/Texturas/marte_textura.png");
+    //enum para todas las texturas del proyecto
+
+    defer tex_marte.deinit(gpa);
 
     const espejo = Material{
         .Color = .{ .Color = V3FromColor(htmlColor("#fff")) },
@@ -97,7 +99,7 @@ pub fn main() !void {
         .Refractive_index = 0,
     };
     var mat_textura = marmol;
-    mat_textura.Color = .{ .Textura = &tex_prueba };
+    mat_textura.Color = .{ .Textura = &tex_marte };
     mat_textura.Propiedades.Albedo = 0.9; // para que se vea la textura y no el color base.
 
     const objetos = [_]Forma{
@@ -123,11 +125,13 @@ pub fn main() !void {
                 },
             },
         },
+        // marte
         .{ .Sphere = .{
             .center = .{ .x = 0, .y = 0, .z = 0 },
             .radius = 5,
-            .material = marmol,
+            .material = mat_textura,
         } },
+
         .{ .Sphere = .{
             .center = .{ .x = 22, .y = 0, .z = -45 },
             .radius = 5,
