@@ -9,6 +9,7 @@ const Light = @import("raytracer.zig").Light;
 const Intersect = @import("raytracer.zig").Intersect;
 const Material = @import("raytracer.zig").Material;
 const Textura = @import("textura.zig").Textura;
+const Modelo = @import("formas/Modelo.zig");
 
 const htmlColor = @import("cute_colors.zig").htmlColor;
 const V3FromColor = @import("raytracer.zig").V3FromColor;

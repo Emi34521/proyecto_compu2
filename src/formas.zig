@@ -3,13 +3,14 @@ const Intersect = @import("raytracer.zig").Intersect;
 const rl = @import("raylib");
 const Plane = @import("formas/Plane.zig").Plane;
 const Triangle = @import("formas/Triangle.zig").Triangle;
+const Modelo = @import("formas/Modelo.zig").Modelo;
 
 const tipo = enum {
     Sphere,
     Triangle,
     Plane,
     //Plane_norm_offset,
-    //Modelo,
+    //   Modelo,
 };
 
 pub const Forma = union(tipo) {
@@ -17,7 +18,7 @@ pub const Forma = union(tipo) {
     Triangle: Triangle,
     Plane: Plane,
     //Plane_norm_offset: void,
-    //Modelo: void,
+    //   Modelo: Modelo,
 
     pub fn intersect(self: Forma, origin: rl.Vector3, direction: rl.Vector3) ?Intersect {
         return switch (self) {
@@ -25,7 +26,7 @@ pub const Forma = union(tipo) {
             .Triangle => |a| a.intersect(origin, direction),
             .Plane => |a| a.intersect(origin, direction),
             //.Plane_norm_offset => |a| a.intersect(origin, direction),
-            // .Modelo => |a| a.intersect(origin, direction),
+            //  .Modelo => |a| a.intersect(origin, direction),
         };
     }
 };
