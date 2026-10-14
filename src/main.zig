@@ -20,7 +20,7 @@ const Clock = std.Io.Clock.real;
 const width = 1300;
 const height = 900;
 
-const block_sz = 100;
+const block_sz: i32 = 100;
 
 pub fn main() !void {
     var alloc = switch (builtin.mode) {
@@ -160,6 +160,7 @@ pub fn main() !void {
             },
             .Material = mat_textura,
         } },
+        //modelo de cubo
         .{
             .Modelo = cubo,
         },
@@ -232,13 +233,38 @@ pub fn main() !void {
 
         camera.lookAt(.zero());
 
-        try render(&framebuffer, &objetos, &lights, camera);
+        try render(io, &framebuffer, &objetos, &lights, camera);
 
         try framebuffer.swap_buffers();
     }
 }
 
-fn render(target: *Framebuffer, objects: []const Forma, lights: []const Light, camera: Camera) !void {
+fn render(io: std.Io, target: *Framebuffer, objects: []const Forma, lights: []const Light, camera: Camera) !void {
+    //para crear concurrencia y que, en teoría, ganar más fps
+    var group = std.Io.Group.init;
+    defer group.cancel(io);
+    //for con la cantidad de bloques que tiene cada hilo
+    for (0..block_sz) |xi| {
+        const block_width_0: usize = @as(usize, (width / block_sz) * (xi));
+        const block_width_f: usize = @as(usize, (width / block_sz) * (xi + 1));
+        for (0..block_sz) |yi| {
+            const block_height_0: usize = @as(usize, (height / block_sz) * yi);
+            const block_height_f: usize = @as(usize, (height / block_sz) * (yi + 1));
+            group.async(io, render_1_to_x, .{
+                target,
+                objects,
+                lights,
+                camera,
+                block_width_0,
+                block_height_0,
+                block_width_f,
+                block_height_f,
+            });
+        }
+    }
+    try group.await(io);
+}
+fn render_1_to_x(target: *Framebuffer, objects: []const Forma, lights: []const Light, camera: Camera, x_0: usize, y_0: usize, x_f: usize, y_f: usize) void {
     const width_f32: f32 = @floatFromInt(target.width);
     const height_f32: f32 = @floatFromInt(target.height);
 
@@ -246,8 +272,8 @@ fn render(target: *Framebuffer, objects: []const Forma, lights: []const Light, c
     const FOV = std.math.pi / 3.0;
     const perspective_scale = @tan(FOV * 0.5);
 
-    for (0..height) |screen_y| {
-        for (0..width) |screen_x| {
+    for (y_0..y_f) |screen_y| {
+        for (x_0..x_f) |screen_x| {
             const x_f32: f32 = @floatFromInt(screen_x);
             const y_f32: f32 = @floatFromInt(screen_y);
 
@@ -271,7 +297,9 @@ fn render(target: *Framebuffer, objects: []const Forma, lights: []const Light, c
 
             const col = cast_ray(camera.Postition, direction, objects, lights, 5);
             target.set_current_color(V3ToColor(col));
-            try target.set_pixel(@intCast(screen_x), @intCast(screen_y));
+            target.set_pixel(@intCast(screen_x), @intCast(screen_y)) catch |err| switch (err) {
+                error.BadCoordinates => @panic("Malas coordenadas"),
+            };
         }
     }
 }

@@ -115,9 +115,9 @@ pub const Modelo = struct {
         // a diferencia de la esfera, es mayor o igual, como la esfera estará sobre del modelo, con rozar la esfera es más que
         // suficiente.
         if (discriminante >= 0) {
-            //const solucion = (-b - @sqrt(discriminante)) / 2;
+            const solucion = (-b - @sqrt(discriminante)) / 2;
             // En este caso se utiliza la raíz positiva, debido a que los rayos pueden venir dentro de la esfera. Lo que causaría errores
-            const solucion = (-b + @sqrt(discriminante)) / 2;
+            //const solucion = (-b + @sqrt(discriminante)) / 2;
             if (solucion < 0) return null;
             //variables para guardar los puntos espesificos del triangulo. Estos los devuelve el golpe. POr lo que es fundamental guardarlos
             var cara_t: ?obj.Cara = null;
