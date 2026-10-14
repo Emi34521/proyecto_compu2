@@ -99,6 +99,9 @@ pub fn main() !void {
         .Especular = 10,
         .Refractive_index = 0,
     };
+    const cubo = try Modelo.Modelo.init(io, gpa, "src/modelos/cubo.obj", marmol, 4.0, .{ .x = -15, .y = 0, .z = -10 });
+    defer cubo.deinit(gpa);
+
     var mat_textura = marmol;
     mat_textura.Color = .{ .Textura = &tex_marte };
     mat_textura.Propiedades.Albedo = 0.9; // para que se vea la textura y no el color base.
@@ -157,6 +160,9 @@ pub fn main() !void {
             },
             .Material = mat_textura,
         } },
+        .{
+            .Modelo = cubo,
+        },
     };
 
     const lights = [_]Light{

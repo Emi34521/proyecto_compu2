@@ -13,7 +13,8 @@ pub const Modelo = struct {
     faces: []const Cara,
     // material del modelo
     Material: Material,
-    center: f32,
+    //olvidé que center era un vector 3 XD
+    center: rl.Vector3,
     radio: f32,
 
     /// Carga un .obj. Igual que Textura.init reserva memoria con gpa y se libera con deinit(gpa).
@@ -33,7 +34,7 @@ pub const Modelo = struct {
         // zona para generar los parametros de una esfera que envuelva al modelo para que el raytracer pueda determinar si cargarlo o no
         //antes de mostrar y renderizar todo el modelo.
         // Si la lista de caras está vacía, se devuelve el respectivo error y así, se ejecuterá el errdefer y se liberará la memoria.
-        if (malla.len == 0) return error.ModeloVacio;
+        if (malla.faces.len == 0) return error.ModeloVacio;
 
         // para guardar la suma de vectores
         var suma_cord = rl.Vector3.init(0, 0, 0);
@@ -47,19 +48,19 @@ pub const Modelo = struct {
         const total_vertices = @as(f32, @floatFromInt(malla.faces.len * 3));
         // asignar el nuevo centro de la esfera.
 
-        const centro = .{ .x = suma_cord.x / total_vertices, .y = suma_cord.y / total_vertices, .z = suma_cord.z / total_vertices };
+        const centro: rl.Vector3 = .{ .x = suma_cord.x / total_vertices, .y = suma_cord.y / total_vertices, .z = suma_cord.z / total_vertices };
         //calcular el radio. No encontré una mejor forma de sacarlo así que tomaré el punto con mayor distancia hacia el centro
         //y ese usaré de radio. Por lo que, recorreré nuevamente el mallas.faces
 
         //variables para guardar y comparar.
         var mayor_d: f32 = 0.0;
-        const mayor_g: f32 = 0.0;
+        var mayor_g: f32 = 0.0;
 
         for (malla.faces) |cara| {
             // un vector que vaya desde el punto de un vértice hacia el centro de la esfera
-            const vector1 = cara.a.subtrac(centro);
-            const vector2 = cara.b.subtrac(centro);
-            const vector3 = cara.c.subtrac(centro);
+            const vector1 = cara.a.position.subtract(centro);
+            const vector2 = cara.b.position.subtract(centro);
+            const vector3 = cara.c.position.subtract(centro);
             // productos punto para poder comparar la distancia. Ya que, el producto punto de un vector por si mismo
             // es igual a la distancia al cuadrado. Esto me servirá para comparar la distancia máxima o más grande
             const vector1dot = vector1.dotProduct(vector1);
@@ -86,7 +87,7 @@ pub const Modelo = struct {
             .faces = malla.faces,
             .Material = material,
             .radio = mayor_g,
-            .centre = centro,
+            .center = centro,
         };
     }
 
@@ -106,7 +107,7 @@ pub const Modelo = struct {
         // a siempre es 1 si direction esta normalizado
 
         const b = 2 * direction.dotProduct(center_to_origin);
-        const c = center_to_origin.dotProduct(center_to_origin) - self.radius * self.radius;
+        const c = center_to_origin.dotProduct(center_to_origin) - self.radio * self.radio;
 
         // const discriminante = b * b - 4.0 * a * c;
         const discriminante = b * b - 4.0 * c;
@@ -118,9 +119,44 @@ pub const Modelo = struct {
             // En este caso se utiliza la raíz positiva, debido a que los rayos pueden venir dentro de la esfera. Lo que causaría errores
             const solucion = (-b + @sqrt(discriminante)) / 2;
             if (solucion < 0) return null;
+            //variables para guardar los puntos espesificos del triangulo. Estos los devuelve el golpe. POr lo que es fundamental guardarlos
+            var cara_t: ?obj.Cara = null;
+            var mejor: ?triangulo.Triangle.Golpe = null;
+
             for (self.faces) |tria| {
-                _ = tria;
+                //moller que devuelve o no un golpe
+                const moller = triangulo.Triangle.mollerTrumbore(origin, direction, tria.a.position, tria.b.position, tria.c.position);
+                //se recorren los golpes que no sean nulos y se guardan.
+                if (moller) |golpe| {
+                    if (mejor == null or golpe.t < mejor.?.t) {
+                        mejor = golpe;
+                        cara_t = tria;
+                    }
+                }
             }
+            const golpe = mejor orelse return null; // ninguna cara fue golpeada
+            const cara = cara_t.?;
+            //calcuar los uv "finales" los cuales representan el mejor golpe. Básicamente donde el t era menor
+            const uvf: rl.Vector2 = .{
+                .x = golpe.b0 * cara.a.tex_coords.x + golpe.b1 * cara.b.tex_coords.x + golpe.b2 * cara.c.tex_coords.x,
+                .y = golpe.b0 * cara.a.tex_coords.y + golpe.b1 * cara.b.tex_coords.y + golpe.b2 * cara.c.tex_coords.y,
+            };
+            // normal final al igual que antes, se combina con el mejor golpe. Importante normalizarla
+            var normal_I: rl.Vector3 = (rl.Vector3{
+                .x = golpe.b0 * cara.a.normal.x + golpe.b1 * cara.b.normal.x + golpe.b2 * cara.c.normal.x,
+                .y = golpe.b0 * cara.a.normal.y + golpe.b1 * cara.b.normal.y + golpe.b2 * cara.c.normal.y,
+                .z = golpe.b0 * cara.a.normal.z + golpe.b1 * cara.b.normal.z + golpe.b2 * cara.c.normal.z,
+            }).normalize();
+
+            if (normal_I.dotProduct(direction) > 0) normal_I = normal_I.scale(-1);
+
+            return .{
+                .Distancia = golpe.t,
+                .Punto = origin.add(direction.scale(golpe.t)),
+                .Material = self.Material,
+                .uv = uvf,
+                .Normal = normal_I,
+            };
         }
         return null;
     }
