@@ -3,7 +3,7 @@ const std = @import("std");
 const Intersect = @import("../raytracer.zig").Intersect;
 const Material = @import("../raytracer.zig").Material;
 const obj = @import("../Object.zig");
-const esfera = @import("sphere.zig");
+const triangulo = @import("Triangle.zig");
 
 pub const Vertice = obj.Vertice;
 pub const Cara = obj.Cara;
@@ -30,8 +30,8 @@ pub const Modelo = struct {
         //por si el cargado falla. Liberar la memoria
         errdefer malla.deinit(gpa);
 
-        // zona para generar una esfera que envuelva al modelo para que el raytracer pueda determinar si cargarlo o no antes de
-        // mostrar y renderizar todo el modelo.
+        // zona para generar los parametros de una esfera que envuelva al modelo para que el raytracer pueda determinar si cargarlo o no
+        //antes de mostrar y renderizar todo el modelo.
         // Si la lista de caras está vacía, se devuelve el respectivo error y así, se ejecuterá el errdefer y se liberará la memoria.
         if (malla.len == 0) return error.ModeloVacio;
 
@@ -80,7 +80,8 @@ pub const Modelo = struct {
             }
         }
         // al final de recorrer toda la malla, se asigna el valor con la distancia real. por eso se hace la raíz cuadrada
-        mayor_g = @sqrt(mayor_d);
+        // además, se multiplica por esa cantidad para evitar posibles errores de redondeo o que el rayo no golpee por error.
+        mayor_g = @sqrt(mayor_d) * 1.0001;
         return .{
             .faces = malla.faces,
             .Material = material,
@@ -93,10 +94,34 @@ pub const Modelo = struct {
         gpa.free(self.faces);
     }
 
+    //función de intersect, para ver si se debería de mostrar el modelo o no.
     pub fn intersect(self: Modelo, origin: rl.Vector3, direction: rl.Vector3) ?Intersect {
-        _ = self;
-        _ = origin;
-        _ = direction;
+        // verificar si el rayo le pega a una esfera antes de si quiera empezar a renderizar todo.
+        // prácticamente reutilizar el código de la esfera.
+
+        const center_to_origin = origin.subtract(self.center);
+
+        // Estos son a,b y c como en ax^2 + bx + c = 0
+        // const a = direction.dotProduct(direction);
+        // a siempre es 1 si direction esta normalizado
+
+        const b = 2 * direction.dotProduct(center_to_origin);
+        const c = center_to_origin.dotProduct(center_to_origin) - self.radius * self.radius;
+
+        // const discriminante = b * b - 4.0 * a * c;
+        const discriminante = b * b - 4.0 * c;
+
+        // a diferencia de la esfera, es mayor o igual, como la esfera estará sobre del modelo, con rozar la esfera es más que
+        // suficiente.
+        if (discriminante >= 0) {
+            //const solucion = (-b - @sqrt(discriminante)) / 2;
+            // En este caso se utiliza la raíz positiva, debido a que los rayos pueden venir dentro de la esfera. Lo que causaría errores
+            const solucion = (-b + @sqrt(discriminante)) / 2;
+            if (solucion < 0) return null;
+            for (self.faces) |tria| {
+                _ = tria;
+            }
+        }
         return null;
     }
 };

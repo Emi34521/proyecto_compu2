@@ -29,19 +29,32 @@ pub const Triangle = struct {
     // si es true, el normal del triángulo se invierte si está apuntando hacia el rayo, esto es útil para que los triángulos sean "unilaterales"
     normal_hacia_rayo: bool = true,
 
+    // Resultado del núcleo de Möller–Trumbore solo lo necesario para saber donde golpeó el rayo.
+    // No trae normal, uv ni material (.
+    pub const Golpe = struct {
+        // distancia desde el origen del rayo hasta el punto de intersección
+        t: f32,
+        // coordenadas baricéntricas: b0 pesa al vértice A, b1 al B y b2 al C. Siempre suman 1.
+        // Sirven para interpolar cualquier dato de los vértices (uvs, normales...) en el punto de intersección.
+        b0: f32,
+        b1: f32,
+        b2: f32,
+    };
+
     // Aquí es donde hay cambios importantes. Originalmente este intersecto se calcula mediante el área de los triángulos formados
     // por el punto de intersección y los vértices del triángulo. Y está bien, no obstante, este método es un poco más lento
     // debido a esto, claude me recomendó utilizar el método de Möller–Trumbore. No lo quise implementar hasta que, al investigarlo, se me hizo
     // intereseante y decidí implementarlo. https://www.youtube.com/watch?v=fK1RPmF_zjQ video que explica más afondo el método.
 
-    pub fn intersect(self: Triangle, origin: rl.Vector3, direction: rl.Vector3) ?Intersect {
+    // Núcleo de Möller–Trumbore. Solo recibe los tres puntos, por lo que también lo puede usar Modelo para probar
+    // cada una de sus caras sin armar un Triangle con material por cada una.
+    pub fn mollerTrumbore(origin: rl.Vector3, direction: rl.Vector3, A: rl.Vector3, B: rl.Vector3, C: rl.Vector3) ?Golpe {
         // Möller–Trumbore algorithm
 
         // paso 1: calcular los vectores de los lados del triángulo
         // básicamente se calculan los vectores que van desde el vértice A hasta los vértices B y C
-        const A = self.puntos.A;
-        const e1 = self.puntos.B.subtract(A);
-        const e2 = self.puntos.C.subtract(A);
+        const e1 = B.subtract(A);
+        const e2 = C.subtract(A);
 
         // paso 2: calcular el determinante
         // el determinante nos dice si el rayo es paralelo al triángulo o no
@@ -63,7 +76,7 @@ pub const Triangle = struct {
 
         // paso 4: calcular la coordenada baricéntrica b2
         // b2 nos dice si el punto de intersección está dentro del triángulo
-        // para eso el b2 debe ser menor que 0 y la suma de b1 y b1 debe ser menor a 1. De lo contrario, está fuera del triángulo.
+        // para eso el b2 debe ser mayor que 0 y la suma de b1 y b1 debe ser menor a 1. De lo contrario, está fuera del triángulo.
         const q = s.crossProduct(e1);
         const b2 = direction.dotProduct(q) * inv_det;
         if (b2 < 0 or b1 + b2 > 1) return null;
@@ -78,9 +91,22 @@ pub const Triangle = struct {
         // no hace falta calcularlo debido a que b0, b1 y b2 deben de sumar 1 al ser una proporción. entonces se puede ahorrar el cálculo.
         const b0 = 1 - b1 - b2;
 
+        return .{ .t = t, .b0 = b0, .b1 = b1, .b2 = b2 };
+    }
+
+    pub fn intersect(self: Triangle, origin: rl.Vector3, direction: rl.Vector3) ?Intersect {
+        // pasos 1 al 6: el núcleo de Möller–Trumbore (ver mollerTrumbore). Si el rayo no golpea el triángulo, no hay nada más que hacer.
+        const golpe = Triangle.mollerTrumbore(origin, direction, self.puntos.A, self.puntos.B, self.puntos.C) orelse return null;
+        const t = golpe.t;
+        const b0 = golpe.b0;
+        const b1 = golpe.b1;
+        const b2 = golpe.b2;
+
         // paso 7: calcular el normal del triángulo
         // el normal del triángulo se calcula mediante el producto cruzado de los vectores
         // que van desde el vértice A hasta los vértices B y C.
+        const e1 = self.puntos.B.subtract(self.puntos.A);
+        const e2 = self.puntos.C.subtract(self.puntos.A);
         var normal = e1.crossProduct(e2).normalize();
         if (self.normal_hacia_rayo and normal.dotProduct(direction) > 0) {
             // si el normal está apuntando hacia el rayo, se invierte para que apunte en la dirección opuesta
