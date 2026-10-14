@@ -31,13 +31,6 @@ pub const Malla = struct {
     pub fn deinit(self: Malla, gpa: std.mem.Allocator) void {
         gpa.free(self.faces);
     }
-
-    pub fn imprimirResumen(self: Malla) void {
-        std.debug.print(
-            "Malla: {d} posiciones, {d} uvs, {d} normales, {d} caras (triangulos)\n",
-            .{ self.n_posiciones, self.n_uvs, self.n_normales, self.faces.len },
-        );
-    }
 };
 
 pub const ErrorObj = error{
@@ -126,7 +119,7 @@ pub fn cargarArchivo(
     return parse(gpa, &file_reader.interface, escala, desplazamiento);
 }
 
-/// Parsea el contenido de un .obj leyendo de cualquier Reader (archivo, texto en memoria para tests, etc.)
+/// Parsea el contenido de un .obj leyendo de cualquier Reader
 pub fn parse(
     gpa: std.mem.Allocator,
     reader: *std.Io.Reader,

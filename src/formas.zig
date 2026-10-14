@@ -10,7 +10,7 @@ const tipo = enum {
     Triangle,
     Plane,
     //Plane_norm_offset,
-    //   Modelo,
+    //Modelo,
 };
 
 pub const Forma = union(tipo) {
@@ -26,7 +26,7 @@ pub const Forma = union(tipo) {
             .Triangle => |a| a.intersect(origin, direction),
             .Plane => |a| a.intersect(origin, direction),
             //.Plane_norm_offset => |a| a.intersect(origin, direction),
-            //  .Modelo => |a| a.intersect(origin, direction),
+            //.Modelo => |a| a.intersect(origin, direction),
         };
     }
 };
