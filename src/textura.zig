@@ -40,7 +40,7 @@ pub const Textura = struct {
         // 1.3 equivale a 0.3 y -0.2 equivale a 0.8. El resultado queda en [0, 1).
         const u = uv.x - @floor(uv.x);
         // En una imagen y=0 es la fila de arriba, pero en UV v=0 suele ser abajo.
-        const v = 1.0 - (uv.y - @floor(uv.y));
+        const v = 1.0 - (uv.y + @floor(uv.y));
 
         const w_f32: f32 = @floatFromInt(self.width);
         const h_f32: f32 = @floatFromInt(self.height);

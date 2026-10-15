@@ -178,6 +178,11 @@ pub fn main() !void {
             .tipo = .{ .direccional = .{ .x = 5, .y = 100, .z = 15 } },
         },
     };
+    const escenario1: escena = .{
+        .luces = &lights,
+        .objetos = &objetos,
+        .skybox = try Textura.init(gpa, "src/Texturas/Skybox_space.png"),
+    };
 
     var cameraDistance: f32 = 100;
     var camera: Camera = .init(.{
@@ -233,13 +238,13 @@ pub fn main() !void {
 
         camera.lookAt(.zero());
 
-        try render(io, &framebuffer, &objetos, &lights, camera);
+        try render(io, &framebuffer, escenario1, camera);
 
         try framebuffer.swap_buffers();
     }
 }
 
-fn render(io: std.Io, target: *Framebuffer, objects: []const Forma, lights: []const Light, camera: Camera) !void {
+fn render(io: std.Io, target: *Framebuffer, escenario: escena, camera: Camera) !void {
     //para crear concurrencia y que, en teoría, ganar más fps
     var group = std.Io.Group.init;
     defer group.cancel(io);
@@ -252,8 +257,7 @@ fn render(io: std.Io, target: *Framebuffer, objects: []const Forma, lights: []co
             const block_height_f: usize = @as(usize, (height / block_sz) * (yi + 1));
             group.async(io, render_1_to_x, .{
                 target,
-                objects,
-                lights,
+                escenario,
                 camera,
                 block_width_0,
                 block_height_0,
@@ -264,7 +268,7 @@ fn render(io: std.Io, target: *Framebuffer, objects: []const Forma, lights: []co
     }
     try group.await(io);
 }
-fn render_1_to_x(target: *Framebuffer, objects: []const Forma, lights: []const Light, camera: Camera, x_0: usize, y_0: usize, x_f: usize, y_f: usize) void {
+fn render_1_to_x(target: *Framebuffer, escema: escena, camera: Camera, x_0: usize, y_0: usize, x_f: usize, y_f: usize) void {
     const width_f32: f32 = @floatFromInt(target.width);
     const height_f32: f32 = @floatFromInt(target.height);
 
@@ -295,7 +299,7 @@ fn render_1_to_x(target: *Framebuffer, objects: []const Forma, lights: []const L
                 .z = direction_from_camera.x * camera.Right.z + direction_from_camera.y * camera.Up.z + direction_from_camera.z * camera.Forward.z,
             };
 
-            const col = cast_ray(camera.Postition, direction, objects, lights, 5);
+            const col = cast_ray(camera.Postition, direction, escema, 5);
             target.set_pixel(@intCast(screen_x), @intCast(screen_y), V3ToColor(col)) catch |err| switch (err) {
                 error.BadCoordinates => @panic("Malas coordenadas"),
             };
@@ -327,10 +331,10 @@ fn refract(incident: rl.Vector3, normal: rl.Vector3, refractive_index: f32) ?rl.
     }
 }
 
-fn cast_ray(origin: rl.Vector3, direction: rl.Vector3, objects: []const Forma, lights: []const Light, max_recursion: usize) rl.Vector3 {
+fn cast_ray(origin: rl.Vector3, direction: rl.Vector3, escenario: escena, max_recursion: usize) rl.Vector3 {
     var closest_hit: ?Intersect = null;
     var z_buffer: f32 = std.math.floatMax(f32);
-    for (objects) |object| {
+    for (escenario.objetos) |object| {
         const hit = object.intersect(
             origin,
             direction,
@@ -355,7 +359,7 @@ fn cast_ray(origin: rl.Vector3, direction: rl.Vector3, objects: []const Forma, l
                 const reflect_direction = rl.Vector3.reflect(direction, hit.Normal);
                 const new_og = hit.Punto.add(reflect_direction.scale(0.001)); // Esto puede hacer que topemos con la misma figura
                 // Eso es malo
-                const reflect_color = cast_ray(new_og, reflect_direction, objects, lights, max_recursion - 1);
+                const reflect_color = cast_ray(new_og, reflect_direction, escenario, max_recursion - 1);
                 color = color.add(reflect_color.scale(mat.Propiedades.Reflectividad));
             } else {
                 // Refleja el fondo
@@ -368,13 +372,13 @@ fn cast_ray(origin: rl.Vector3, direction: rl.Vector3, objects: []const Forma, l
                 if (refract(direction, hit.Normal, mat.Refractive_index)) |refract_direction| {
                     const new_og = hit.Punto.add(refract_direction.scale(0.001)); // Esto puede hacer que topemos con la misma figura
                     // Eso es malo
-                    const refract_color = cast_ray(new_og, refract_direction, objects, lights, max_recursion - 1);
+                    const refract_color = cast_ray(new_og, refract_direction, escenario, max_recursion - 1);
                     color = color.add(refract_color.scale(mat.Propiedades.Transparencia));
                 } else {
                     const reflect_direction = rl.Vector3{ .x = 0, .y = 1, .z = 0 };
                     const new_og = hit.Punto.add(reflect_direction.scale(0.001)); // Esto puede hacer que topemos con la misma figura
                     // Eso es malo
-                    const reflect_color = cast_ray(new_og, reflect_direction, objects, lights, max_recursion - 1);
+                    const reflect_color = cast_ray(new_og, reflect_direction, escenario, max_recursion - 1);
                     color = color.add(reflect_color.scale(mat.Propiedades.Reflectividad));
                 }
             } else {
@@ -383,8 +387,8 @@ fn cast_ray(origin: rl.Vector3, direction: rl.Vector3, objects: []const Forma, l
             }
         }
         //por cada una de las luces, como les pega.
-        for (lights) |light| {
-            if (obscured(hit.Punto, light, objects)) {
+        for (escenario.luces) |light| {
+            if (obscured(hit.Punto, light, escenario.objetos)) {
                 continue;
             }
 
@@ -418,7 +422,7 @@ fn cast_ray(origin: rl.Vector3, direction: rl.Vector3, objects: []const Forma, l
         }
 
         return color;
-    } else return (fondo(direction));
+    } else return (fondo(direction, escenario));
 }
 
 fn obscured(origin: rl.Vector3, light: Light, objects: []const Forma) bool {
@@ -437,10 +441,31 @@ fn obscured(origin: rl.Vector3, light: Light, objects: []const Forma) bool {
 }
 // función auxiliar que me ayuda a detectar el fondo y retornar un color. Actualmente retorna colores en degradado. Posteriormente
 // Planeo que reconozca texturas para hacer una "skybox"
-fn fondo(direcion: rl.Vector3) rl.Vector3 {
+fn fondo(direcion: rl.Vector3, lugar: escena) rl.Vector3 {
+    if (lugar.skybox) |tex| {
+
+        //calcular las uv para las texturas de las esferas.
+        const u: f32 = 0.5 + (std.math.atan2(direcion.z, direcion.x) / (2 * std.math.pi));
+        const v: f32 = 0.5 - (std.math.asin(direcion.y) / std.math.pi);
+
+        // normalizar u y v para que estén entre 0 y 1
+        const u_normal: f32 = @mod(u, 1.0);
+        const v_normal: f32 = @mod(v, 1.0);
+
+        const uv: rl.Vector2 = .{
+            .x = u_normal,
+            .y = v_normal,
+        };
+        return tex.sampleTexture(uv);
+    }
     return .{
         .x = direcion.x * 0.5 + 0.5,
         .y = direcion.y * 0.5 + 0.5,
         .z = direcion.z * 0.5 + 0.5,
     };
 }
+const escena = struct {
+    objetos: []const Forma,
+    luces: []const Light,
+    skybox: ?Textura,
+};
