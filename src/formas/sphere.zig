@@ -39,7 +39,7 @@ pub const Sphere = struct {
                 const norm = point.subtract(self.center).normalize();
 
                 //calcular las uv para las texturas de las esferas.
-                const u: f32 = 0.5 + (std.math.atan2(norm.z, norm.x) / (2 * std.math.pi));
+                const u: f32 = 0.5 + (std.math.atan2(norm.z, norm.x) / (2 * std.math.pi)) + self.rotacion / (2 * std.math.pi);
                 const v: f32 = 0.5 - (std.math.asin(norm.y) / std.math.pi);
 
                 // normalizar u y v para que estén entre 0 y 1
@@ -72,7 +72,6 @@ pub const Sphere = struct {
         esfera.center.z = z_nueva;
     }
     pub fn rotar(self: *Sphere, dt: f32) !void {
-        _ = self;
-        _ = dt;
+        self.rotacion += self.vel_rot * dt;
     }
 };
