@@ -183,6 +183,8 @@ pub fn main() !void {
         .objetos = &objetos,
         .skybox = try Textura.init(gpa, "src/Texturas/Skybox_space.png"),
     };
+    //siempre que se cargue una textura, hacer un defer para liberar la memoria
+    defer escenario1.skybox.?.deinit(gpa);
 
     var cameraDistance: f32 = 100;
     var camera: Camera = .init(.{
