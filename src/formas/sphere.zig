@@ -8,6 +8,9 @@ pub const Sphere = struct {
     center: rl.Vector3,
     radius: f32,
     material: Material,
+    vel_tr: f32,
+    rotacion: f32 = 0.0,
+    vel_rot: f32 = 0.0,
 
     pub fn intersect(self: Sphere, origin: rl.Vector3, direction: rl.Vector3) ?Intersect {
         //https://en.wikipedia.org/wiki/Line%E2%80%93sphere_intersection
@@ -58,5 +61,18 @@ pub const Sphere = struct {
             }
         }
         return null;
+    }
+    pub fn traslado(esfera: *Sphere, dt: f32) !void {
+        const beta = esfera.vel_tr * dt;
+        const x = esfera.center.x;
+        const z = esfera.center.z;
+        const x_nueva = x * std.math.cos(beta) - z * std.math.sin(beta);
+        const z_nueva = x * std.math.sin(beta) + z * std.math.cos(beta);
+        esfera.center.x = x_nueva;
+        esfera.center.z = z_nueva;
+    }
+    pub fn rotar(self: *Sphere, dt: f32) !void {
+        _ = self;
+        _ = dt;
     }
 };
