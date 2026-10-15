@@ -423,11 +423,10 @@ fn cast_ray(origin: rl.Vector3, direction: rl.Vector3, objects: []const Forma, l
 
 fn obscured(origin: rl.Vector3, light: Light, objects: []const Forma) bool {
     const light_dir = light.direccionHacia(origin);
-    const luz_dirN = light_dir.normalize();
     const distancia_a_luz = light_dir.length();
 
     for (objects) |object| {
-        const hit = object.intersect(origin, luz_dirN) orelse continue;
+        const hit = object.intersect(origin, light_dir) orelse continue;
 
         if (hit.Distancia > 0.001 and hit.Distancia < distancia_a_luz) {
             return true;
