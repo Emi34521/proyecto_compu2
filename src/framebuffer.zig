@@ -27,9 +27,9 @@ pub const Framebuffer = struct {
         }
     }
 
-    pub fn set_pixel(self: *Framebuffer, x: i32, y: i32) !void {
+    pub fn set_pixel(self: *Framebuffer, x: i32, y: i32, color: rl.Color) !void {
         if (x >= self.width or y >= self.height) return error.BadCoordinates;
-        self.color_buff.drawPixel(x, y, self.current_color);
+        self.color_buff.drawPixel(x, y, color);
     }
 
     pub fn set_background_color(self: *Framebuffer, color: rl.Color) void {

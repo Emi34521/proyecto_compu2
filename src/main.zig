@@ -170,12 +170,12 @@ pub fn main() !void {
         .{
             .Color = V3FromColor(htmlColor("#f00")),
             .Intensity = 1,
-            .Position = .{ .x = 5, .y = 100, .z = 15 },
+            .tipo = .{ .direccional = .{ .x = 0, .y = 0, .z = -250 } },
         },
         .{
             .Color = V3FromColor(htmlColor("#fff")),
             .Intensity = 1,
-            .Position = .{ .x = 0, .y = 0, .z = -250 },
+            .tipo = .{ .direccional = .{ .x = 5, .y = 100, .z = 15 } },
         },
     };
 
@@ -296,8 +296,7 @@ fn render_1_to_x(target: *Framebuffer, objects: []const Forma, lights: []const L
             };
 
             const col = cast_ray(camera.Postition, direction, objects, lights, 5);
-            target.set_current_color(V3ToColor(col));
-            target.set_pixel(@intCast(screen_x), @intCast(screen_y)) catch |err| switch (err) {
+            target.set_pixel(@intCast(screen_x), @intCast(screen_y), V3ToColor(col)) catch |err| switch (err) {
                 error.BadCoordinates => @panic("Malas coordenadas"),
             };
         }
@@ -390,7 +389,7 @@ fn cast_ray(origin: rl.Vector3, direction: rl.Vector3, objects: []const Forma, l
             }
 
             // La dirección del punto a la luz
-            const light_dir = (light.Position.subtract(hit.Punto)).normalize();
+            const light_dir = light.direccionHacia(hit.Punto);
 
             // ¿Cómo sabemos qué tan "bien" nos pega la luz?
             const diffuse_intensity = light_dir.dotProduct(hit.Normal) * light.Intensity;
@@ -423,7 +422,7 @@ fn cast_ray(origin: rl.Vector3, direction: rl.Vector3, objects: []const Forma, l
 }
 
 fn obscured(origin: rl.Vector3, light: Light, objects: []const Forma) bool {
-    const light_dir = light.Position.subtract(origin);
+    const light_dir = light.direccionHacia(origin);
     const luz_dirN = light_dir.normalize();
     const distancia_a_luz = light_dir.length();
 
