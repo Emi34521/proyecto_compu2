@@ -75,6 +75,7 @@ pub const Material = struct {
         Transparencia: f32,
     },
     Norm_map: ?*textura = null, //mapa de normales, si es null no hay mapa de normales
+    brillo: f32 = 0, //para detectar materiales que brillan por si solos.
 };
 
 pub const Intersect = struct {

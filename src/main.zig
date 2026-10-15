@@ -89,17 +89,32 @@ pub fn main() !void {
     };
 
     const marmol = Material{
+        //color original
         .Color = .{ .Color = V3FromColor(htmlColor("#66664c")) },
+        //para probar las texturas
+        //.Color = .{ .Textura = &tex_marte },
         .Propiedades = .{
             .Albedo = 0.4,
             .Especular = 0.3,
             .Reflectividad = 0,
             .Transparencia = 0,
         },
-        .Especular = 10,
+        .Especular = 0.0,
         .Refractive_index = 0,
     };
-    const cubo = try Modelo.Modelo.init(io, gpa, "src/modelos/cubo.obj", marmol, 4.0, .{ .x = -15, .y = 0, .z = -10 });
+    const sol = Material{
+        .Color = .{ .Color = V3FromColor(htmlColor("#66664c")) },
+        .Propiedades = .{
+            .Albedo = 0.0,
+            .Especular = 0.0,
+            .Reflectividad = 0.0,
+            .Transparencia = 0.0,
+        },
+        .Especular = 0,
+        .Refractive_index = 1,
+        .brillo = 1.0,
+    };
+    const cubo = try Modelo.Modelo.init(io, gpa, "src/modelos/asteroide.obj", marmol, 4.0, .{ .x = -15, .y = 0, .z = -10 });
     defer cubo.deinit(gpa);
 
     var mat_textura = marmol;
@@ -110,7 +125,7 @@ pub fn main() !void {
         .{ .Sphere = .{
             .center = .{ .x = 10, .y = 0, .z = -40 },
             .radius = 5,
-            .material = espejo,
+            .material = marmol,
         } },
         .{
             .Sphere = .{
@@ -133,7 +148,7 @@ pub fn main() !void {
         .{ .Sphere = .{
             .center = .{ .x = 0, .y = 0, .z = 0 },
             .radius = 5,
-            .material = mat_textura,
+            .material = sol,
         } },
 
         .{ .Sphere = .{
@@ -170,12 +185,15 @@ pub fn main() !void {
         .{
             .Color = V3FromColor(htmlColor("#f00")),
             .Intensity = 1,
-            .tipo = .{ .direccional = .{ .x = 0, .y = 0, .z = -250 } },
+            .tipo = .{ .puntual = .{ .x = 0, .y = 0, .z = -250 } },
         },
         .{
-            .Color = V3FromColor(htmlColor("#fff")),
+            .Color = V3FromColor(htmlColor("#ffffff")),
             .Intensity = 1,
-            .tipo = .{ .direccional = .{ .x = 5, .y = 100, .z = 15 } },
+            //original
+            //.tipo = .{ .puntual = .{ .x = 5, .y = 100, .z = 15 } },
+            //nueva para probar el material tipo "sol"
+            .tipo = .{ .puntual = .{ .x = 0, .y = 0, .z = 0 } },
         },
     };
     const escenario1: escena = .{
@@ -353,6 +371,17 @@ fn cast_ray(origin: rl.Vector3, direction: rl.Vector3, escenario: escena, max_re
         const mat = hit.Material;
         var color: rl.Vector3 = .zero();
 
+        const color_base: rl.Vector3 = switch (mat.Color) {
+            .Color => |c| c,
+            .Textura => |tex| if (hit.uv) |uv|
+                tex.sampleTexture(uv)
+            else
+                rl.Vector3{ .x = 1, .y = 0, .z = 1 }, // magenta: este objeto aún no tiene UV en lugar de crashear
+        };
+
+        // Materiales que brillan por sí solos se suma una sola vez.
+        color = color.add(color_base.scale(mat.brillo));
+
         // Desde el punto a la cámara
         const view_direction = direction.scale(-1);
 
@@ -399,13 +428,7 @@ fn cast_ray(origin: rl.Vector3, direction: rl.Vector3, escenario: escena, max_re
 
             // ¿Cómo sabemos qué tan "bien" nos pega la luz?
             const diffuse_intensity = light_dir.dotProduct(hit.Normal) * light.Intensity;
-            const color_base: rl.Vector3 = switch (mat.Color) {
-                .Color => |c| c,
-                .Textura => |tex| if (hit.uv) |uv|
-                    tex.sampleTexture(uv)
-                else
-                    rl.Vector3{ .x = 1, .y = 0, .z = 1 }, // magenta: este objeto aún no tiene UV en lugar de crashear
-            };
+
             const diffuse = color_base.scale(diffuse_intensity);
             //const diffuse = mat.Color.scale(diffuse_intensity);
 
@@ -429,9 +452,15 @@ fn cast_ray(origin: rl.Vector3, direction: rl.Vector3, escenario: escena, max_re
 
 fn obscured(origin: rl.Vector3, light: Light, objects: []const Forma) bool {
     const light_dir = light.direccionHacia(origin);
-    const distancia_a_luz = light_dir.length();
+    // como la otra vez, olvidé que esta función existe, antes la distancia siempre era 1 y casi no existían las sombras
+    // ahora funciona correctamente.
+    const distancia_a_luz = Light.distanciaDesde(light, origin);
 
     for (objects) |object| {
+        const hitman = object.intersect(origin, light_dir) orelse continue;
+        if (hitman.Material.brillo > 0) {
+            continue;
+        }
         const hit = object.intersect(origin, light_dir) orelse continue;
 
         if (hit.Distancia > 0.001 and hit.Distancia < distancia_a_luz) {
@@ -446,9 +475,9 @@ fn obscured(origin: rl.Vector3, light: Light, objects: []const Forma) bool {
 fn fondo(direcion: rl.Vector3, lugar: escena) rl.Vector3 {
     if (lugar.skybox) |tex| {
 
-        //calcular las uv para las texturas de las esferas.
+        //calcular las uv para las texturas, similar a como funciona con las esferas
         const u: f32 = 0.5 + (std.math.atan2(direcion.z, direcion.x) / (2 * std.math.pi));
-        const v: f32 = 0.5 - (std.math.asin(direcion.y) / std.math.pi);
+        const v: f32 = 0.5 - (std.math.asin(std.math.clamp(direcion.y, -1, 1)) / std.math.pi);
 
         // normalizar u y v para que estén entre 0 y 1
         const u_normal: f32 = @mod(u, 1.0);
