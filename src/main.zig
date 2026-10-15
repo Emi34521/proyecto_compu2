@@ -418,7 +418,7 @@ fn cast_ray(origin: rl.Vector3, direction: rl.Vector3, objects: []const Forma, l
         }
 
         return color;
-    } else return (.zero());
+    } else return (fondo(direction));
 }
 
 fn obscured(origin: rl.Vector3, light: Light, objects: []const Forma) bool {
@@ -434,4 +434,13 @@ fn obscured(origin: rl.Vector3, light: Light, objects: []const Forma) bool {
     }
 
     return false;
+}
+// función auxiliar que me ayuda a detectar el fondo y retornar un color. Actualmente retorna colores en degradado. Posteriormente
+// Planeo que reconozca texturas para hacer una "skybox"
+fn fondo(direcion: rl.Vector3) rl.Vector3 {
+    return .{
+        .x = direcion.x * 0.5 + 0.5,
+        .y = direcion.y * 0.5 + 0.5,
+        .z = direcion.z * 0.5 + 0.5,
+    };
 }
