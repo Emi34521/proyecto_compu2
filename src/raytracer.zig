@@ -38,8 +38,7 @@ pub const Light = struct {
         switch (self.tipo) {
             .puntual => |posicion| {
                 const direccion = rl.Vector3.subtract(posicion, punto);
-                const vectorN = rl.Vector3.normalize(direccion);
-                return vectorN.length();
+                return direccion.length();
             },
             .direccional => {
                 return std.math.inf(f32);
