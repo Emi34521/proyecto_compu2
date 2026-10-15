@@ -22,6 +22,40 @@ const height = 900;
 
 const block_sz: i32 = 100;
 
+// Un cuerpo del sistema solar. Las distancias y los radios no están a escala real porque obviamente no caben,
+// solo conservan el orden y las proporciones aproximadas entre planetas.
+const Cuerpo = struct {
+    nombre: []const u8,
+    textura: [:0]const u8, // si el archivo no existe se usa color_respaldo
+    color_respaldo: rl.Vector3,
+    radio: f32,
+    orbita: f32, // distancia al sol
+    angulo_grados: f32, // posición sobre su órbita (para que no queden alineados)
+    // parámetros propios de cada material (Albedo + Especular + Reflectividad + Transparencia <= 1)
+    albedo: f32,
+    especular: f32,
+    exponente: f32, // qué tan pequeño/brillante es el punto especular
+    reflectividad: f32,
+    transparencia: f32,
+    indice_refraccion: f32,
+    brillo: f32 = 0, // > 0: material que emite luz (el sol)
+};
+
+const cuerpos = [_]Cuerpo{
+    // 0: el sol. Siempre debe ir de primero y en el origen, ahí también está su luz.
+    .{ .nombre = "Sol", .textura = "src/Texturas/sol.png", .color_respaldo = V3FromColor(htmlColor("#ffcc33")), .radio = 9, .orbita = 0, .angulo_grados = 0, .albedo = 0, .especular = 0, .exponente = 0, .reflectividad = 0, .transparencia = 0, .indice_refraccion = 1, .brillo = 1.0 },
+    .{ .nombre = "Mercurio", .textura = "src/Texturas/mercurio.png", .color_respaldo = V3FromColor(htmlColor("#9c9c9c")), .radio = 1.2, .orbita = 17, .angulo_grados = 20, .albedo = 0.85, .especular = 0.05, .exponente = 5, .reflectividad = 0, .transparencia = 0, .indice_refraccion = 0 },
+    .{ .nombre = "Venus", .textura = "src/Texturas/venus.png", .color_respaldo = V3FromColor(htmlColor("#d9a066")), .radio = 2.4, .orbita = 24, .angulo_grados = 100, .albedo = 0.8, .especular = 0.1, .exponente = 10, .reflectividad = 0, .transparencia = 0, .indice_refraccion = 0 },
+    // La Tierra es el material con reflexión (océanos)
+    .{ .nombre = "Tierra", .textura = "src/Texturas/tierra.png", .color_respaldo = V3FromColor(htmlColor("#2f6fd0")), .radio = 2.6, .orbita = 32, .angulo_grados = 200, .albedo = 0.7, .especular = 0.15, .exponente = 60, .reflectividad = 0.15, .transparencia = 0, .indice_refraccion = 0 },
+    .{ .nombre = "Marte", .textura = "src/Texturas/marte_textura.png", .color_respaldo = V3FromColor(htmlColor("#b5502d")), .radio = 1.8, .orbita = 40, .angulo_grados = 290, .albedo = 0.9, .especular = 0.05, .exponente = 5, .reflectividad = 0, .transparencia = 0, .indice_refraccion = 0 },
+    .{ .nombre = "Jupiter", .textura = "src/Texturas/jupiter.png", .color_respaldo = V3FromColor(htmlColor("#c8a27a")), .radio = 6, .orbita = 56, .angulo_grados = 60, .albedo = 0.85, .especular = 0.1, .exponente = 20, .reflectividad = 0, .transparencia = 0, .indice_refraccion = 0 },
+    .{ .nombre = "Saturno", .textura = "src/Texturas/saturno.png", .color_respaldo = V3FromColor(htmlColor("#e0cf9a")), .radio = 5, .orbita = 74, .angulo_grados = 150, .albedo = 0.8, .especular = 0.15, .exponente = 25, .reflectividad = 0, .transparencia = 0, .indice_refraccion = 0 },
+    // Urano es el material con refracción (planeta de hielo, índice ~1.31)
+    .{ .nombre = "Urano", .textura = "src/Texturas/urano.png", .color_respaldo = V3FromColor(htmlColor("#8fd8e0")), .radio = 3.6, .orbita = 90, .angulo_grados = 240, .albedo = 0.5, .especular = 0.2, .exponente = 80, .reflectividad = 0.05, .transparencia = 0.25, .indice_refraccion = 1.31 },
+    .{ .nombre = "Neptuno", .textura = "src/Texturas/neptuno.png", .color_respaldo = V3FromColor(htmlColor("#3f5fe0")), .radio = 3.5, .orbita = 103, .angulo_grados = 330, .albedo = 0.75, .especular = 0.2, .exponente = 40, .reflectividad = 0.05, .transparencia = 0, .indice_refraccion = 0 },
+};
+
 pub fn main() !void {
     var alloc = switch (builtin.mode) {
         .Debug, .ReleaseSafe => std.heap.DebugAllocator(.{}).init,
@@ -47,153 +81,70 @@ pub fn main() !void {
 
     var last_frame_time = Clock.now(io);
     var delta: i64 = 1;
-    var tex_marte = try Textura.init(gpa, "src/Texturas/marte_textura.png");
-    //enum para todas las texturas del proyecto
+    // Texturas de cada cuerpo. Si el archivo no existe no truena: avisa por consola y usa el color de respaldo.
+    var texturas: [cuerpos.len]?Textura = @splat(null);
+    defer {
+        for (texturas) |t| {
+            if (t) |tex| tex.deinit(gpa);
+        }
+    }
+    for (cuerpos, 0..) |c, i| {
+        if (rl.fileExists(c.textura)) {
+            texturas[i] = try Textura.init(gpa, c.textura);
+            std.debug.print("[textura] {s}: {s}\n", .{ c.nombre, c.textura });
+        } else {
+            std.debug.print("[textura] {s}: falta {s}, uso color de respaldo\n", .{ c.nombre, c.textura });
+        }
+    }
 
-    defer tex_marte.deinit(gpa);
-
-    const espejo = Material{
-        .Color = .{ .Color = V3FromColor(htmlColor("#fff")) },
-        .Propiedades = .{
-            .Albedo = 0,
-            .Especular = 1,
-            .Reflectividad = 0.9,
-            .Transparencia = 0,
-        },
-        .Especular = 100,
-        .Refractive_index = 0,
-    };
-
-    const vidrio = Material{
-        .Color = .{ .Color = V3FromColor(htmlColor("#aaa")) },
-        .Propiedades = .{
-            .Albedo = 0,
-            .Especular = 0.5,
-            .Reflectividad = 0.1,
-            .Transparencia = 0.8,
-        },
-        .Especular = 125,
-        .Refractive_index = 1.5,
-    };
-
-    const diamante = Material{
-        .Color = .{ .Color = V3FromColor(htmlColor("#aaa")) },
-        .Propiedades = .{
-            .Albedo = 0,
-            .Especular = 0.5,
-            .Reflectividad = 0.1,
-            .Transparencia = 0.8,
-        },
-        .Especular = 125,
-        .Refractive_index = 2.417,
-    };
-
-    const marmol = Material{
-        //color original
-        .Color = .{ .Color = V3FromColor(htmlColor("#66664c")) },
-        //para probar las texturas
-        //.Color = .{ .Textura = &tex_marte },
-        .Propiedades = .{
-            .Albedo = 0.4,
-            .Especular = 0.3,
-            .Reflectividad = 0,
-            .Transparencia = 0,
-        },
-        .Especular = 0.0,
-        .Refractive_index = 0,
-    };
-    const sol = Material{
-        .Color = .{ .Color = V3FromColor(htmlColor("#66664c")) },
-        .Propiedades = .{
-            .Albedo = 0.0,
-            .Especular = 0.0,
-            .Reflectividad = 0.0,
-            .Transparencia = 0.0,
-        },
-        .Especular = 0,
-        .Refractive_index = 1,
-        .brillo = 1.0,
-    };
-    const cubo = try Modelo.Modelo.init(io, gpa, "src/modelos/asteroide.obj", marmol, 4.0, .{ .x = -15, .y = 0, .z = -10 });
-    defer cubo.deinit(gpa);
-
-    var mat_textura = marmol;
-    mat_textura.Color = .{ .Textura = &tex_marte };
-    mat_textura.Propiedades.Albedo = 0.9; // para que se vea la textura y no el color base.
-
-    const objetos = [_]Forma{
-        .{ .Sphere = .{
-            .center = .{ .x = 10, .y = 0, .z = -40 },
-            .radius = 5,
-            .material = marmol,
-        } },
-        .{
-            .Sphere = .{
-                .center = .{ .x = 12.5, .y = 0, .z = -60 },
-                .radius = 5,
-                .material = .{
-                    .Color = .{ .Color = V3FromColor(htmlColor("#4c1919")) },
-                    .Propiedades = .{
-                        .Albedo = 0.9,
-                        .Especular = 0.1,
-                        .Reflectividad = 0,
-                        .Transparencia = 0,
-                    },
-                    .Especular = 10,
-                    .Refractive_index = 0,
+    // sol + 8 planetas (esferas) + 1 asteroide (modelo)
+    var objetos: [cuerpos.len + 1]Forma = undefined;
+    for (cuerpos, 0..) |c, i| {
+        const ang = std.math.degreesToRadians(c.angulo_grados);
+        objetos[i] = .{ .Sphere = .{
+            .center = .{ .x = c.orbita * @cos(ang), .y = 0, .z = c.orbita * @sin(ang) },
+            .radius = c.radio,
+            .material = .{
+                .Color = if (texturas[i] != null)
+                    .{ .Textura = &texturas[i].? }
+                else
+                    .{ .Color = c.color_respaldo },
+                .Propiedades = .{
+                    .Albedo = c.albedo,
+                    .Especular = c.especular,
+                    .Reflectividad = c.reflectividad,
+                    .Transparencia = c.transparencia,
                 },
+                .Especular = c.exponente,
+                .Refractive_index = c.indice_refraccion,
+                .brillo = c.brillo,
             },
-        },
-        // marte
-        .{ .Sphere = .{
-            .center = .{ .x = 0, .y = 0, .z = 0 },
-            .radius = 5,
-            .material = sol,
-        } },
+        } };
+    }
 
-        .{ .Sphere = .{
-            .center = .{ .x = 22, .y = 0, .z = -45 },
-            .radius = 5,
-            .material = espejo,
-        } },
-        .{ .Sphere = .{
-            .center = .{ .x = -25, .y = 0, .z = -40 },
-            .radius = 5,
-            .material = vidrio,
-        } },
-        .{ .Sphere = .{
-            .center = .{ .x = -37, .y = 0, .z = -40 },
-            .radius = 5,
-            .material = diamante,
-        } },
-        //triángulo de prueba.
-        .{ .Triangle = .{
-            .puntos = .{
-                .A = .{ .x = -15, .y = -12, .z = 20 },
-                .B = .{ .x = 15, .y = -12, .z = 20 },
-                .C = .{ .x = 0, .y = 14, .z = 20 },
-            },
-            .Material = mat_textura,
-        } },
-        //modelo de cubo
-        .{
-            .Modelo = cubo,
-        },
+    // Asteroide: en el cinturón entre Marte (40) y Júpiter (56)
+    const roca = Material{
+        .Color = .{ .Color = V3FromColor(htmlColor("#777")) },
+        .Propiedades = .{ .Albedo = 0.9, .Especular = 0.05, .Reflectividad = 0, .Transparencia = 0 },
+        .Especular = 5,
+        .Refractive_index = 0,
     };
+    const asteroide = try Modelo.Modelo.init(io, gpa, "src/modelos/asteroide.obj", roca, 1.2, .{ .x = 47, .y = 2, .z = -20 });
+    defer asteroide.deinit(gpa);
+    objetos[cuerpos.len] = .{ .Modelo = asteroide };
 
     const lights = [_]Light{
+        // El sol: luz puntual en el origen, justo dentro de la esfera del sol
         .{
-            .Color = V3FromColor(htmlColor("#f00")),
+            .Color = V3FromColor(htmlColor("#fff")),
             .Intensity = 1,
-            .tipo = .{ .puntual = .{ .x = 0, .y = 0, .z = -250 } },
-        },
-        .{
-            .Color = V3FromColor(htmlColor("#ffffff")),
-            .Intensity = 1,
-            //original
-            //.tipo = .{ .puntual = .{ .x = 5, .y = 100, .z = 15 } },
-            //nueva para probar el material tipo "sol"
             .tipo = .{ .puntual = .{ .x = 0, .y = 0, .z = 0 } },
+        },
+        // Relleno muy tenue (direccional) para que el lado oscuro de los planetas no quede negro puro
+        .{
+            .Color = V3FromColor(htmlColor("#8899ff")),
+            .Intensity = 0.12,
+            .tipo = .{ .direccional = .{ .x = -0.4, .y = -0.3, .z = -1 } },
         },
     };
     const escenario1: escena = .{
@@ -204,7 +155,7 @@ pub fn main() !void {
     //siempre que se cargue una textura, hacer un defer para liberar la memoria
     defer escenario1.skybox.?.deinit(gpa);
 
-    var cameraDistance: f32 = 100;
+    var cameraDistance: f32 = 200;
     var camera: Camera = .init(.{
         .x = 0,
         .y = 0,
@@ -427,7 +378,7 @@ fn cast_ray(origin: rl.Vector3, direction: rl.Vector3, escenario: escena, max_re
             const light_dir = light.direccionHacia(hit.Punto);
 
             // ¿Cómo sabemos qué tan "bien" nos pega la luz?
-            const diffuse_intensity = light_dir.dotProduct(hit.Normal) * light.Intensity;
+            const diffuse_intensity = @max(0, light_dir.dotProduct(hit.Normal)) * light.Intensity;
 
             const diffuse = color_base.scale(diffuse_intensity);
             //const diffuse = mat.Color.scale(diffuse_intensity);
