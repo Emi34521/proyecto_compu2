@@ -10,6 +10,7 @@ const Intersect = @import("raytracer.zig").Intersect;
 const Material = @import("raytracer.zig").Material;
 const Textura = @import("textura.zig").Textura;
 const Modelo = @import("formas/Modelo.zig");
+const Anillo = @import("formas/ring.zig").anillo;
 
 const htmlColor = @import("cute_colors.zig").htmlColor;
 const V3FromColor = @import("raytracer.zig").V3FromColor;
@@ -48,16 +49,16 @@ const Cuerpo = struct {
 var cuerpos = [_]Cuerpo{
     // 0: el sol. Siempre debe ir de primero y en el origen, ahí también está su luz.
     .{ .nombre = "Sol", .textura = "src/Texturas/sol.png", .color_respaldo = V3FromColor(htmlColor("#ffcc33")), .radio = 9, .orbita = 0, .angulo_grados = 0, .albedo = 0, .especular = 0, .exponente = 0, .reflectividad = 0, .transparencia = 0, .indice_refraccion = 1, .brillo = 1.0 },
-    .{ .nombre = "Mercurio", .textura = "src/Texturas/mercurio.png", .color_respaldo = V3FromColor(htmlColor("#9c9c9c")), .radio = 1.2, .orbita = 17, .angulo_grados = 20, .albedo = 0.85, .especular = 0.05, .exponente = 5, .reflectividad = 0, .transparencia = 0, .indice_refraccion = 0, .vel_tr = 1.0, .vel_rot = 0.1 },
-    .{ .nombre = "Venus", .textura = "src/Texturas/venus.png", .color_respaldo = V3FromColor(htmlColor("#d9a066")), .radio = 2.4, .orbita = 24, .angulo_grados = 100, .albedo = 0.8, .especular = 0.1, .exponente = 10, .reflectividad = 0, .transparencia = 0, .indice_refraccion = 0, .vel_tr = 1.0, .vel_rot = 0.1 },
+    .{ .nombre = "Mercurio", .textura = "src/Texturas/mercurio.png", .color_respaldo = V3FromColor(htmlColor("#9c9c9c")), .radio = 1.2, .orbita = 17, .angulo_grados = 20, .albedo = 0.85, .especular = 0.05, .exponente = 5, .reflectividad = 0, .transparencia = 0, .indice_refraccion = 0, .vel_tr = 0.43, .vel_rot = -0.02 },
+    .{ .nombre = "Venus", .textura = "src/Texturas/venus.png", .color_respaldo = V3FromColor(htmlColor("#d9a066")), .radio = 2.4, .orbita = 24, .angulo_grados = 100, .albedo = 0.8, .especular = 0.1, .exponente = 10, .reflectividad = 0, .transparencia = 0, .indice_refraccion = 0, .vel_tr = 0.17, .vel_rot = 0.004 },
     // La Tierra es el material con reflexión (océanos)
-    .{ .nombre = "Tierra", .textura = "src/Texturas/tierra.png", .color_respaldo = V3FromColor(htmlColor("#2f6fd0")), .radio = 2.6, .orbita = 32, .angulo_grados = 200, .albedo = 0.7, .especular = 0.15, .exponente = 60, .reflectividad = 0.15, .transparencia = 0, .indice_refraccion = 0, .vel_tr = 1.0, .vel_rot = 1.0 },
-    .{ .nombre = "Marte", .textura = "src/Texturas/marte_textura.png", .color_respaldo = V3FromColor(htmlColor("#b5502d")), .radio = 1.8, .orbita = 40, .angulo_grados = 290, .albedo = 0.9, .especular = 0.05, .exponente = 5, .reflectividad = 0, .transparencia = 0, .indice_refraccion = 0, .vel_tr = 1.0, .vel_rot = 1.0 },
-    .{ .nombre = "Jupiter", .textura = "src/Texturas/jupiter.png", .color_respaldo = V3FromColor(htmlColor("#c8a27a")), .radio = 6, .orbita = 56, .angulo_grados = 60, .albedo = 0.85, .especular = 0.1, .exponente = 20, .reflectividad = 0, .transparencia = 0, .indice_refraccion = 0, .vel_tr = 1.0, .vel_rot = 1.0 },
-    .{ .nombre = "Saturno", .textura = "src/Texturas/saturno.png", .color_respaldo = V3FromColor(htmlColor("#e0cf9a")), .radio = 5, .orbita = 74, .angulo_grados = 150, .albedo = 0.8, .especular = 0.15, .exponente = 25, .reflectividad = 0, .transparencia = 0, .indice_refraccion = 0, .vel_tr = 1.0, .vel_rot = 1.0 },
+    .{ .nombre = "Tierra", .textura = "src/Texturas/tierra.png", .color_respaldo = V3FromColor(htmlColor("#2f6fd0")), .radio = 2.6, .orbita = 32, .angulo_grados = 200, .albedo = 0.7, .especular = 0.15, .exponente = 60, .reflectividad = 0.15, .transparencia = 0, .indice_refraccion = 0, .vel_tr = 0.10, .vel_rot = -1.0 },
+    .{ .nombre = "Marte", .textura = "src/Texturas/marte_textura.png", .color_respaldo = V3FromColor(htmlColor("#b5502d")), .radio = 1.8, .orbita = 40, .angulo_grados = 290, .albedo = 0.9, .especular = 0.05, .exponente = 5, .reflectividad = 0, .transparencia = 0, .indice_refraccion = 0, .vel_tr = 0.056, .vel_rot = 0.97 },
+    .{ .nombre = "Jupiter", .textura = "src/Texturas/jupiter.png", .color_respaldo = V3FromColor(htmlColor("#c8a27a")), .radio = 6, .orbita = 56, .angulo_grados = 60, .albedo = 0.85, .especular = 0.1, .exponente = 20, .reflectividad = 0, .transparencia = 0, .indice_refraccion = 0, .vel_tr = 0.009, .vel_rot = -2.4 },
+    .{ .nombre = "Saturno", .textura = "src/Texturas/saturno.png", .color_respaldo = V3FromColor(htmlColor("#e0cf9a")), .radio = 5, .orbita = 74, .angulo_grados = 150, .albedo = 0.8, .especular = 0.15, .exponente = 25, .reflectividad = 0, .transparencia = 0, .indice_refraccion = 0, .vel_tr = 0.0036, .vel_rot = -2.25 },
     // Urano es el material con refracción (planeta de hielo, índice ~1.31)
-    .{ .nombre = "Urano", .textura = "src/Texturas/urano.png", .color_respaldo = V3FromColor(htmlColor("#8fd8e0")), .radio = 3.6, .orbita = 90, .angulo_grados = 240, .albedo = 0.5, .especular = 0.2, .exponente = 80, .reflectividad = 0.05, .transparencia = 0.25, .indice_refraccion = 1.31, .vel_tr = 1.0, .vel_rot = 1.0 },
-    .{ .nombre = "Neptuno", .textura = "src/Texturas/neptuno.png", .color_respaldo = V3FromColor(htmlColor("#3f5fe0")), .radio = 3.5, .orbita = 103, .angulo_grados = 330, .albedo = 0.75, .especular = 0.2, .exponente = 40, .reflectividad = 0.05, .transparencia = 0, .indice_refraccion = 0, .vel_tr = 1.0, .vel_rot = 1.0 },
+    .{ .nombre = "Urano", .textura = "src/Texturas/urano.png", .color_respaldo = V3FromColor(htmlColor("#8fd8e0")), .radio = 3.6, .orbita = 90, .angulo_grados = 240, .albedo = 0.5, .especular = 0.2, .exponente = 80, .reflectividad = 0.05, .transparencia = 0.25, .indice_refraccion = 1.31, .vel_tr = 0.0013, .vel_rot = 1.4 },
+    .{ .nombre = "Neptuno", .textura = "src/Texturas/neptuno.png", .color_respaldo = V3FromColor(htmlColor("#3f5fe0")), .radio = 3.5, .orbita = 103, .angulo_grados = 330, .albedo = 0.75, .especular = 0.2, .exponente = 40, .reflectividad = 0.05, .transparencia = 0, .indice_refraccion = 0, .vel_tr = 0.0006, .vel_rot = 1.5 },
 };
 
 pub fn main() !void {
@@ -102,13 +103,13 @@ pub fn main() !void {
     }
 
     // sol + 8 planetas (esferas) + 1 asteroide (modelo)
-    var objetos: [cuerpos.len + 1]Forma = undefined;
+    var objetos: [cuerpos.len + 2]Forma = undefined;
     for (cuerpos, 0..) |c, i| {
         const ang = std.math.degreesToRadians(c.angulo_grados);
         objetos[i] = .{ .Sphere = .{
             .center = .{ .x = c.orbita * @cos(ang), .y = 0, .z = c.orbita * @sin(ang) },
             .radius = c.radio,
-            .vel_tr = c.vel_tr,
+            .vel_tr = c.vel_tr * 2,
             .vel_rot = c.vel_rot,
             .material = .{
                 .Color = if (texturas[i] != null)
@@ -127,6 +128,15 @@ pub fn main() !void {
             },
         } };
     }
+    var textura_ring = try Textura.init(gpa, "src/Texturas/neptuno.png");
+    defer textura_ring.deinit(gpa);
+
+    const saturno_ring = Material{ .Color = .{ .Textura = &textura_ring }, .Especular = 0.5, .Refractive_index = 0, .Propiedades = .{
+        .Albedo = 0.75,
+        .Especular = 0.1,
+        .Reflectividad = 0,
+        .Transparencia = 0,
+    } };
 
     // Asteroide: en el cinturón entre Marte (40) y Júpiter (56)
     const roca = Material{
@@ -138,6 +148,17 @@ pub fn main() !void {
     const asteroide = try Modelo.Modelo.init(io, gpa, "src/modelos/asteroide.obj", roca, 1.2, .{ .x = 47, .y = 2, .z = -20 });
     defer asteroide.deinit(gpa);
     objetos[cuerpos.len] = .{ .Modelo = asteroide };
+    const anillo: Anillo = .{
+        .rad_exterior = 12.0,
+        .center = objetos[6].Sphere.center,
+        .rad_interior = 6.5,
+        .Material = saturno_ring,
+        //.Material = objetos[6].Sphere.material,
+        .normal = .{ .x = 0.707, .y = 0.707, .z = 0 },
+        .vel_rot = objetos[6].Sphere.vel_rot,
+        .vel_tr = objetos[6].Sphere.vel_tr,
+    };
+    objetos[cuerpos.len + 1] = .{ .Anillo = anillo };
 
     const lights = [_]Light{
         // El sol: luz puntual en el origen, justo dentro de la esfera del sol
@@ -470,6 +491,7 @@ fn rotacion(objectos: []Forma, dt: f32) !void {
     for (objectos) |*obj| {
         switch (obj.*) {
             .Sphere => |*esfera| try esfera.rotar(dt),
+            .Anillo => |*anillo| try anillo.rotar(dt),
             else => {},
         }
     }
@@ -479,6 +501,7 @@ fn traslacion(objectos: []Forma, dt: f32) void {
     for (objectos) |*obj| {
         switch (obj.*) {
             .Sphere => |*esfera| try esfera.traslado(dt),
+            .Anillo => |*anillo| try anillo.traslado(dt),
             else => {},
         }
     }
