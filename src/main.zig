@@ -259,6 +259,7 @@ fn render(io: std.Io, target: *Framebuffer, escenario: escena, camera: Camera) !
     for (0..block_sz) |xi| {
         const block_width_0: usize = @as(usize, (width / block_sz) * (xi));
         const block_width_f: usize = @as(usize, (width / block_sz) * (xi + 1));
+
         for (0..block_sz) |yi| {
             const block_height_0: usize = @as(usize, (height / block_sz) * yi);
             const block_height_f: usize = @as(usize, (height / block_sz) * (yi + 1));

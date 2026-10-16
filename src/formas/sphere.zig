@@ -8,7 +8,7 @@ pub const Sphere = struct {
     center: rl.Vector3,
     radius: f32,
     material: Material,
-    vel_tr: f32,
+    vel_tr: f32 = 0.0,
     rotacion: f32 = 0.0,
     vel_rot: f32 = 0.0,
 
